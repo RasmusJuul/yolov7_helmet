@@ -22,7 +22,9 @@
 *.cfg
 !setup.cfg
 !cfg/yolov3*.cfg
+testing.ipynb
 
+outputs/*
 storage.googleapis.com
 runs/*
 data/*

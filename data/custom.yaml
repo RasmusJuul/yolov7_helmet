@@ -1,0 +1,12 @@
+# Safety helmet wearing dataset
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: ../datasets/helmet_extented/train
+val: ../datasets/helmet_extented/val
+test: ../datasets/helmet_extented/test
+
+# number of classes
+nc: 2
+
+# class names
+names: ['no_helmet','helmet']
