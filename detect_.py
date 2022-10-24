@@ -20,7 +20,7 @@ def detect(model,
            project = 'runs/detect',
            conf_thres = 0.6,
            iou_thres = 0.45,
-           save_txt = True,
+           save_txt = False,
            imgsz = 640,
            save_img=True,
            view_img = False,
@@ -31,7 +31,7 @@ def detect(model,
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
-    # Directories
+    # # Directories
     save_dir = Path(increment_path(Path(project) / name, exist_ok=exist_ok))  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
@@ -41,6 +41,10 @@ def detect(model,
     device = select_device('cuda:0')
     half = True
     classify = False
+    
+    consecutive = 0
+    when = []
+    when_frame = []
 
     # Set Dataloader
     vid_path, vid_writer = None, None
@@ -75,11 +79,11 @@ def detect(model,
             old_img_h = img.shape[2]
             old_img_w = img.shape[3]
             for i in range(3):
-                model(img, augment=augment)[0]
+                model(img)[0]#, augment=augment)[0]
 
         # Inference
         t1 = time_synchronized()
-        pred = model(img, augment=augment)[0]
+        pred = model(img)[0]#, augment=augment)[0]
         t2 = time_synchronized()
 
         # Apply NMS
@@ -89,7 +93,8 @@ def detect(model,
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
-
+        
+        no_helmet = False
         # Process detections
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
@@ -101,34 +106,19 @@ def detect(model,
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+            
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
-                # Print results
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
+                
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
+                    if cls == 0:
+                        no_helmet = True
+                    
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-
-            # Print time (inference + NMS)
-            print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
-
-            # Stream results
-            if view_img:
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
             if save_img:
@@ -149,9 +139,25 @@ def detect(model,
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
-
+        
+        if no_helmet:
+            consecutive += 1
+        else:
+            consecutive = 0
+            
+        if consecutive == dataset.fps:
+            when.append(round(frame/dataset.fps))
+            when_frame.append(frame)
+            cv2.imwrite(save_path[:-4]+'_{}.jpg'.format(frame), im0)
+        
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         #print(f"Results saved to {save_dir}{s}")
-
+    
+    if len(when) != 0:
+        # write timestamps to file
+        with open(str(save_dir)+'/timestamps.txt', 'w') as fp:
+            for item in when:
+                fp.write("%s\n" % item)
+                
     print(f'Done. ({time.time() - t0:.3f}s)')

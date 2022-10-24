@@ -17,4 +17,5 @@ module load cuda
 
 source ../yolov7env/bin/activate
 
-python train_aux.py --workers 8 --device 0 --batch-size 16 --data data/custom.yaml --img 640 640 --cfg cfg/training/yolov7-e6e-custom.yaml --weights 'yolov7-e6e_training.pt' --name yolov7-helmet --hyp data/hyp.scratch.custom.yaml
+#python train_aux.py --workers 8 --device 0 --batch-size 16 --data data/custom.yaml --img 640 640 --cfg cfg/training/yolov7-e6e-custom.yaml --weights 'yolov7-e6e_training.pt' --name yolov7-helmet --hyp data/hyp.scratch.custom.yaml
+python train.py --workers 8 --device 0 --batch-size 16 --data data/custom.yaml --img 640 640 --cfg cfg/training/yolov7-custom.yaml --weights 'yolov7.pt' --name yolov7-helmet-basic --hyp data/hyp.scratch.custom.yaml

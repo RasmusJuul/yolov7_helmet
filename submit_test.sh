@@ -4,7 +4,7 @@
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -W 02:00
+#BSUB -W 00:30
 #BSUB -R "rusage[mem=8GB]"
 ##BSUB -R "select[gpu40gb]" #options gpu40gb or gpu80gb
 #BSUB -o outputs/gpu_%J.out
@@ -18,4 +18,4 @@ module load cuda
 
 source ../yolov7env/bin/activate
 
-python test.py --data data/custom.yaml --img 448 --batch 32 --conf 0.001 --iou 0.65 --device 0 --weights best.pt --name yolov7-helmet_test
+python main.py
