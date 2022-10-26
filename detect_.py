@@ -44,6 +44,7 @@ def detect(model,
         half = True
     else:
         device = select_device('cpu')
+        half = False
     
     consecutive = 0
     when = []
