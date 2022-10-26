@@ -38,7 +38,11 @@ def detect(model,
     # Initialize
     set_logging()
     stride = 64
-    device = select_device('cuda:0')
+    if torch.cuda.is_available():
+        device = select_device('cuda:0')
+    else:
+        device = select_device('cpu')
+    
     half = True
     classify = False
     

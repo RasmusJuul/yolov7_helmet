@@ -62,14 +62,18 @@ if __name__ == '__main__':
     (save_dir / 'videos').mkdir(parents=True, exist_ok=True)
     
     split_video(opt.source, str(save_dir.absolute())+'/videos/%d.mp4')
-
-    device = 'cuda:0'
+    
+    if torch.cuda.is_available():
+        device = 'cuda:0'
+    else:
+        device = 'cpu'
 
     # Load model
     imgsz = 640
     model = attempt_load('best_yolov7.pt', map_location=device)  # load FP32 model
     model = TracedModel(model, device, imgsz)
-    model.half()  # to FP16
+    if device != 'cpu:
+        model.half()  # to FP16
     
     for i in range(12):
         source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
