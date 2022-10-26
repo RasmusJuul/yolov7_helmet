@@ -16,19 +16,21 @@ def split_video(vidSource, outputPath):
     fps = round(cap.get(cv2.CAP_PROP_FPS))
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    
+    vid_length = 300
 
-    segRange = [(0,300*fps),
-                (300*fps,300*fps*2),
-                (300*fps*2,300*fps*3),
-                (300*fps*3,300*fps*4),
-                (300*fps*4,300*fps*5),
-                (300*fps*5,300*fps*6),
-                (300*fps*6,300*fps*7),
-                (300*fps*7,300*fps*8),
-                (300*fps*8,300*fps*9),
-                (300*fps*9,300*fps*10),
-                (300*fps*10,300*fps*11),
-                (300*fps*11,300*fps*12)] # a list of starting/ending frame indices pairs
+    segRange = [(0,vid_length*fps),
+                (vid_length*fps,vid_length*fps*2),
+                (vid_length*fps*2,vid_length*fps*3),
+                (vid_length*fps*3,vid_length*fps*4),
+                (vid_length*fps*4,vid_length*fps*5),
+                (vid_length*fps*5,vid_length*fps*6),
+                (vid_length*fps*6,vid_length*fps*7),
+                (vid_length*fps*7,vid_length*fps*8),
+                (vid_length*fps*8,vid_length*fps*9),
+                (vid_length*fps*9,vid_length*fps*10),
+                (vid_length*fps*10,vid_length*fps*11),
+                (vid_length*fps*11,vid_length*fps*12)] # a list of starting/ending frame indices pairs
 
     for idx,(begFidx,endFidx) in enumerate(segRange):
         writer = cv2.VideoWriter(shotsPath%idx,fourcc,fps,size)
@@ -49,14 +51,14 @@ def split_video(vidSource, outputPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
-    parser.add_argument('--project', default='runs/detect', help='save results to project/name')
-    parser.add_argument('--name', default='exp', help='save results to project/name')
+    parser.add_argument('--date', default='2022/0928', help='save results to date/hour')
+    parser.add_argument('--hour', default='14', help='save results to date/hour')
     opt = parser.parse_args()
     
-    project = "20220928" #Date
-    name = "14" #Hour
+    date = opt.date
+    hour = opt.hour
     
-    save_dir = Path(increment_path(Path(project) / name, exist_ok=False))
+    save_dir = Path(increment_path(Path(date) / hour, exist_ok=False))
     (save_dir / 'videos').mkdir(parents=True, exist_ok=True)
     
     split_video(opt.source, str(save_dir.absolute())+'/videos/%d.mp4')
@@ -71,6 +73,6 @@ if __name__ == '__main__':
     
     for i in range(12):
         source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
-        detect(model, source = source, name = str(5+5*i), project = '{}/{}'.format(project,name))
+        detect(model, source = source, name = str(5+5*i), project = '{}/{}'.format(date,hour))
 
 
