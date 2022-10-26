@@ -58,7 +58,7 @@ if __name__ == '__main__':
     date = opt.date
     hour = opt.hour
     
-    save_dir = Path(increment_path(Path(date) / hour, exist_ok=False))
+    save_dir = Path(increment_path(Path(date) / hour, exist_ok=True))
     (save_dir / 'videos').mkdir(parents=True, exist_ok=True)
     
     split_video(opt.source, str(save_dir.absolute())+'/videos/%d.mp4')
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     imgsz = 640
     model = attempt_load('best_yolov7.pt', map_location=device)  # load FP32 model
     model = TracedModel(model, device, imgsz)
-    if device != 'cpu:
+    if device != 'cpu':
         model.half()  # to FP16
     
     for i in range(12):

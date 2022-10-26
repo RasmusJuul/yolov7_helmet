@@ -38,13 +38,12 @@ def detect(model,
     # Initialize
     set_logging()
     stride = 64
+    classify = False
     if torch.cuda.is_available():
         device = select_device('cuda:0')
+        half = True
     else:
         device = select_device('cpu')
-    
-    half = True
-    classify = False
     
     consecutive = 0
     when = []

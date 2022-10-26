@@ -24,6 +24,7 @@
 !cfg/yolov3*.cfg
 testing.ipynb
 
+2022/*
 outputs/*
 storage.googleapis.com
 runs/*
