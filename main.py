@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
     parser.add_argument('--project', default=None, help='save results to project folder')
-    parser.add_argument('--stream', default=False, help='is source a stream')
+    parser.add_argument('--stream', action='store_true', help='is source a stream?')
     opt = parser.parse_args()
     
     if opt.project is None:
@@ -71,9 +71,11 @@ if __name__ == '__main__':
     model = TracedModel(model, device, imgsz)
     if device != 'cpu':
         model.half()  # to FP16
-    
-    for i in range(len(os.listdir(project+"/videos"))):
-        source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
-        detect(model, source = source, name = str(5+5*i), project = project)
+    if opt.stream:
+        detect(model, source = source, name = 'cam', project = project)
+    else:
+        for i in range(len(os.listdir(project+"/videos"))):
+            source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
+            detect(model, source = source, name = str(5+5*i), project = project)
 
 
