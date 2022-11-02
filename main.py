@@ -72,7 +72,7 @@ if __name__ == '__main__':
     if device != 'cpu':
         model.half()  # to FP16
     if opt.stream:
-        detect(model, source = source, name = 'cam', project = project)
+        detect(model, source = opt.source, name = 'cam', project = project)
     else:
         for i in range(len(os.listdir(project+"/videos"))):
             source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
