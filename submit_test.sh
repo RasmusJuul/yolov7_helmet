@@ -18,4 +18,4 @@ module load cuda
 
 source ../yolov7env/bin/activate
 
-python main.py
+python main.py --source inference/videos/paving.mp4

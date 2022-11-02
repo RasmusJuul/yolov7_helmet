@@ -23,6 +23,7 @@
 !setup.cfg
 !cfg/yolov3*.cfg
 testing.ipynb
+submit_test.sh
 
 2022/*
 outputs/*

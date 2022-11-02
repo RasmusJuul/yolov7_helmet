@@ -10,7 +10,7 @@ from numpy import random
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
+    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, bbox_iou_, xyxy2xywh_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
@@ -32,22 +32,22 @@ def detect(model,
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
     # # Directories
-    save_dir = Path(increment_path(Path(project) / name, exist_ok=exist_ok))  # increment run
+    save_dir = Path(increment_path(Path(project) / name, exist_ok=True))  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Initialize
     set_logging()
     stride = 64
-    classify = False
     if torch.cuda.is_available():
         device = select_device('cuda:0')
         half = True
     else:
         device = select_device('cpu')
+        half = False
     
-    consecutive = 0
     when = []
-    when_frame = []
+    no_helmet_pos = []
+    tracking_id = 0
 
     # Set Dataloader
     vid_path, vid_writer = None, None
@@ -86,18 +86,15 @@ def detect(model,
 
         # Inference
         t1 = time_synchronized()
-        pred = model(img)[0]#, augment=augment)[0]
+        with torch.no_grad():
+            pred = model(img)[0]#, augment=augment)[0]
         t2 = time_synchronized()
 
         # Apply NMS
         pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=agnostic_nms)
         t3 = time_synchronized()
-
-        # Apply Classifier
-        if classify:
-            pred = apply_classifier(pred, modelc, img, im0s)
         
-        no_helmet = False
+        
         # Process detections
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
@@ -117,11 +114,71 @@ def detect(model,
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     if cls == 0:
-                        no_helmet = True
+                        if len(no_helmet_pos) != 0:
+                            idx_to_update = None
+                            idx_to_delete = []
+                            add = True
+                            temp_counter = 0
+                            for k, info in enumerate(no_helmet_pos):
+                                old_xyxy = info[0]
+                                old_frame = info[1]
+                                counter = info[2]
+                                speed = info[3]
+                                tracking_id_temp = info[4]
+                                
+                                old_xywh = xyxy2xywh_(old_xyxy)
+                                xywh = xyxy2xywh_(xyxy)
+                                time_between = frame - old_frame
+                 
+                                iou = bbox_iou_(old_xyxy,xyxy)
+                                if iou >= 0.25:
+                                    idx_to_update = k
+                                    temp_counter = counter
+                                    temp_speed = ((xywh[0]-old_xywh[0])/time_between,(xywh[1]-old_xywh[1])/time_between)
+                                    if speed is not None:
+                                        new_speed = ((speed[0]+temp_speed[0])/2,(speed[1]+temp_speed[1])/2)
+                                        cv2.line(im0, (int(xywh[0]),int(xywh[1])), (int(xywh[0]+new_speed[0]),int(xywh[1]+new_speed[1])), (0,0,255), 3)
+                                        cv2.putText(im0, str(tracking_id), (int(xywh[0]),int(xywh[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 1, 2)
+                                    else:
+                                        new_speed = temp_speed
+                                    add = False
+                                elif speed is not None:
+                                    x_pred = speed[0]*time_between
+                                    y_pred = speed[1]*time_between
+                                    cv2.line(im0, (int(old_xywh[0]),int(old_xywh[1])), (int(old_xywh[0]+x_pred),int(old_xywh[1]+y_pred)), (0,0,255), 3)
+                                    cv2.putText(im0, str(tracking_id), (int(xywh[0]),int(xywh[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 1, 2)
+                                    
+                                    if (abs(old_xywh[0]+x_pred-xywh[0]) < xywh[2]) and (abs(old_xywh[1]+x_pred-xywh[1]) < xywh[3]):
+                                        idx_to_update = k
+                                        temp_counter = counter
+                                        temp_speed = ((xywh[0]-old_xywh[0])/time_between,(xywh[1]-old_xywh[1])/time_between)
+                                        new_speed = ((speed[0]+temp_speed[0])/2,(speed[1]+temp_speed[1])/2)
+                                        add = False
+                                    
+                                if frame - old_frame >= 2*dataset.fps: #If the no helmet position hasn't been updated in 30 sec then delete it
+                                    idx_to_delete.append(k)
+                                    
+                            if idx_to_update is not None:
+                                no_helmet_pos[idx_to_update] = (xyxy,frame,temp_counter+1,new_speed,tracking_id_temp)
+                                print("\n updated position \n")
+                                    
+                            if len(idx_to_delete) != 0:
+                                for index in sorted(idx_to_delete, reverse=True):
+                                    del no_helmet_pos[index]
+                                    
+                            if add:
+                                tracking_id += 1
+                                no_helmet_pos.append((xyxy,frame,0,None,tracking_id))
+                                print("\n added new position \n")
+                        else:
+                            tracking_id += 1
+                            no_helmet_pos.append((xyxy,frame,0,None,tracking_id))
+                        
                     
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+                        
 
             # Save results (image with detections)
             if save_img:
@@ -142,16 +199,17 @@ def detect(model,
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
+                    
+            #Save image and timestamp
+            for info in no_helmet_pos:
+                old_xyxy = info[0]
+                old_frame = info[1]
+                counter = info[2]
+                if (counter == 2*dataset.fps) and (old_frame == frame): # If seen for 2 seconds save an image and timestamp
+                    when.append(round(frame/dataset.fps))
+                    cv2.imwrite(save_path+'_{}.jpg'.format(frame), im0)
+                    print("\n no helmet detected and saved\n")
         
-        if no_helmet:
-            consecutive += 1
-        else:
-            consecutive = 0
-            
-        if consecutive == dataset.fps:
-            when.append(round(frame/dataset.fps))
-            when_frame.append(frame)
-            cv2.imwrite(save_path[:-4]+'_{}.jpg'.format(frame), im0)
         
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''

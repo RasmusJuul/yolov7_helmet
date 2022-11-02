@@ -6,6 +6,7 @@ from models.experimental import attempt_load
 import os
 import torch
 import cv2
+import datetime
 from pathlib import Path
 
 def split_video(vidSource, outputPath):
@@ -16,21 +17,13 @@ def split_video(vidSource, outputPath):
     fps = round(cap.get(cv2.CAP_PROP_FPS))
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    tot_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
     vid_length = 300
-
-    segRange = [(0,vid_length*fps),
-                (vid_length*fps,vid_length*fps*2),
-                (vid_length*fps*2,vid_length*fps*3),
-                (vid_length*fps*3,vid_length*fps*4),
-                (vid_length*fps*4,vid_length*fps*5),
-                (vid_length*fps*5,vid_length*fps*6),
-                (vid_length*fps*6,vid_length*fps*7),
-                (vid_length*fps*7,vid_length*fps*8),
-                (vid_length*fps*8,vid_length*fps*9),
-                (vid_length*fps*9,vid_length*fps*10),
-                (vid_length*fps*10,vid_length*fps*11),
-                (vid_length*fps*11,vid_length*fps*12)] # a list of starting/ending frame indices pairs
+    num_vids = int(tot_length/(vid_length*fps))+1
+    
+    
+    segRange =[(vid_length*fps*i,vid_length*fps*(i+1)) for i in range(num_vids)] # a list of starting/ending frame indices pairs
 
     for idx,(begFidx,endFidx) in enumerate(segRange):
         writer = cv2.VideoWriter(shotsPath%idx,fourcc,fps,size)
@@ -51,17 +44,21 @@ def split_video(vidSource, outputPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
-    parser.add_argument('--date', default='2022/0928', help='save results to date/hour')
-    parser.add_argument('--hour', default='14', help='save results to date/hour')
+    parser.add_argument('--project', default=None, help='save results to project folder')
+    parser.add_argument('--stream', default=False, help='is source a stream')
     opt = parser.parse_args()
     
-    date = opt.date
-    hour = opt.hour
+    if opt.project is None:
+        project = 'runs/%s' %datetime.datetime.today().strftime('%Y_%m_%d/%H')
+    else:
+        project = opt.project
     
-    save_dir = Path(increment_path(Path(date) / hour, exist_ok=True))
+    
+    save_dir = Path(increment_path(Path(project), exist_ok=False))
     (save_dir / 'videos').mkdir(parents=True, exist_ok=True)
     
-    split_video(opt.source, str(save_dir.absolute())+'/videos/%d.mp4')
+    if not opt.stream:
+        split_video(opt.source, str(save_dir.absolute())+'/videos/%d.mp4')
     
     if torch.cuda.is_available():
         device = 'cuda:0'
@@ -75,8 +72,8 @@ if __name__ == '__main__':
     if device != 'cpu':
         model.half()  # to FP16
     
-    for i in range(12):
+    for i in range(len(os.listdir(project+"/videos"))):
         source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
-        detect(model, source = source, name = str(5+5*i), project = '{}/{}'.format(date,hour))
+        detect(model, source = source, name = str(5+5*i), project = project)
 
 
