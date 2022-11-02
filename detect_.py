@@ -47,7 +47,7 @@ def detect(model,
     
     when = []
     no_helmet_pos = []
-    tracking_id = 0
+    
 
     # Set Dataloader
     vid_path, vid_writer = None, None
@@ -124,29 +124,33 @@ def detect(model,
                                 old_frame = info[1]
                                 counter = info[2]
                                 speed = info[3]
-                                tracking_id_temp = info[4]
                                 
                                 old_xywh = xyxy2xywh_(old_xyxy)
                                 xywh = xyxy2xywh_(xyxy)
                                 time_between = frame - old_frame
                  
                                 iou = bbox_iou_(old_xyxy,xyxy)
-                                if iou >= 0.25:
+                                if iou >= 0.75:
                                     idx_to_update = k
                                     temp_counter = counter
                                     temp_speed = ((xywh[0]-old_xywh[0])/time_between,(xywh[1]-old_xywh[1])/time_between)
                                     if speed is not None:
                                         new_speed = ((speed[0]+temp_speed[0])/2,(speed[1]+temp_speed[1])/2)
                                         cv2.line(im0, (int(xywh[0]),int(xywh[1])), (int(xywh[0]+new_speed[0]),int(xywh[1]+new_speed[1])), (0,0,255), 3)
-                                        cv2.putText(im0, str(tracking_id), (int(xywh[0]),int(xywh[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 1, 2)
+                                    if temp_speed < 1000:
+                                        new_speed = None
+                                        print("Something is wrong")
                                     else:
                                         new_speed = temp_speed
                                     add = False
                                 elif speed is not None:
                                     x_pred = speed[0]*time_between
                                     y_pred = speed[1]*time_between
-                                    cv2.line(im0, (int(old_xywh[0]),int(old_xywh[1])), (int(old_xywh[0]+x_pred),int(old_xywh[1]+y_pred)), (0,0,255), 3)
-                                    cv2.putText(im0, str(tracking_id), (int(xywh[0]),int(xywh[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 1, 2)
+                                    try:
+                                        cv2.line(im0, (int(old_xywh[0]),int(old_xywh[1])), (int(old_xywh[0]+x_pred),int(old_xywh[1]+y_pred)), (0,0,255), 3)
+                                    except:
+                                        print('x_pred:',x_pred)
+                                        print('y_pred:',y_pred)
                                     
                                     if (abs(old_xywh[0]+x_pred-xywh[0]) < xywh[2]) and (abs(old_xywh[1]+x_pred-xywh[1]) < xywh[3]):
                                         idx_to_update = k
@@ -159,7 +163,7 @@ def detect(model,
                                     idx_to_delete.append(k)
                                     
                             if idx_to_update is not None:
-                                no_helmet_pos[idx_to_update] = (xyxy,frame,temp_counter+1,new_speed,tracking_id_temp)
+                                no_helmet_pos[idx_to_update] = (xyxy,frame,temp_counter+1,new_speed)
                                 print("\n updated position \n")
                                     
                             if len(idx_to_delete) != 0:
@@ -167,12 +171,10 @@ def detect(model,
                                     del no_helmet_pos[index]
                                     
                             if add:
-                                tracking_id += 1
-                                no_helmet_pos.append((xyxy,frame,0,None,tracking_id))
+                                no_helmet_pos.append((xyxy,frame,0,None))
                                 print("\n added new position \n")
                         else:
-                            tracking_id += 1
-                            no_helmet_pos.append((xyxy,frame,0,None,tracking_id))
+                            no_helmet_pos.append((xyxy,frame,0,None))
                         
                     
                     if save_img or view_img:  # Add bbox to image
