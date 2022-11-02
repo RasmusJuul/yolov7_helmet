@@ -128,14 +128,20 @@ def detect(model,
                                 old_xywh = xyxy2xywh_(old_xyxy)
                                 xywh = xyxy2xywh_(xyxy)
                                 time_between = frame - old_frame
+                                if time_between == 0:
+                                    continue
                  
                                 iou = bbox_iou_(old_xyxy,xyxy)
                                 if iou >= 0.75:
                                     idx_to_update = k
                                     temp_counter = counter
                                     temp_speed = ((xywh[0]-old_xywh[0])/time_between,(xywh[1]-old_xywh[1])/time_between)
-                                    if speed is not None:
+                                    if (temp_speed[0] > 1e+20) or (temp_speed[1] > 1e+20):
+                                        temp_speed = None
+                                    
+                                    elif speed is not None:
                                         new_speed = ((speed[0]+temp_speed[0])/2,(speed[1]+temp_speed[1])/2)
+                                        
                                         cv2.line(im0, (int(xywh[0]),int(xywh[1])), (int(xywh[0]+new_speed[0]),int(xywh[1]+new_speed[1])), (0,0,255), 3)
                                     else:
                                         new_speed = temp_speed
