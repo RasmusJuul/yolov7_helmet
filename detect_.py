@@ -137,9 +137,6 @@ def detect(model,
                                     if speed is not None:
                                         new_speed = ((speed[0]+temp_speed[0])/2,(speed[1]+temp_speed[1])/2)
                                         cv2.line(im0, (int(xywh[0]),int(xywh[1])), (int(xywh[0]+new_speed[0]),int(xywh[1]+new_speed[1])), (0,0,255), 3)
-                                    if (temp_speed[0] < 1000) or (temp_speed[1] < 1000):
-                                        new_speed = None
-                                        print("Something is wrong")
                                     else:
                                         new_speed = temp_speed
                                     add = False
