@@ -8,6 +8,7 @@ import torch
 import cv2
 import datetime
 from pathlib import Path
+from mail import email_sender
 
 def split_video(vidSource, outputPath):
     vidPath = vidSource
@@ -44,7 +45,7 @@ def split_video(vidSource, outputPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
-    parser.add_argument('--project', default=None, help='save results to project folder')
+    parser.add_argument('--project', default=None, help='save results to project folder. Defaults to current time and date')
     parser.add_argument('--stream', action='store_true', help='is source a stream?')
     opt = parser.parse_args()
     
@@ -72,10 +73,10 @@ if __name__ == '__main__':
     if device != 'cpu':
         model.half()  # to FP16
     if opt.stream:
-        detect(model, source = opt.source, name = 'cam', project = project)
+        detect(model, source = opt.source, name = '', project = project)
     else:
-        for i in range(len(os.listdir(project+"/videos"))):
-            source = str(save_dir.absolute())+'/videos/{}.mp4'.format(i)
-            detect(model, source = source, name = str(5+5*i), project = project)
-
+        source = str(save_dir.absolute())+'/videos'
+        detect(model, source = source, name = '', project = project)
+    
+    email_sender()
 

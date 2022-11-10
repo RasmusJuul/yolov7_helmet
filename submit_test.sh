@@ -1,10 +1,10 @@
 #!/bin/sh
-#BSUB -q gpuv100
-#BSUB -J yolov7_test
+#BSUB -q gpua100
+#BSUB -J yolov7_detect
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -W 00:30
+#BSUB -W 03:00
 #BSUB -R "rusage[mem=8GB]"
 ##BSUB -R "select[gpu40gb]" #options gpu40gb or gpu80gb
 #BSUB -o outputs/gpu_%J.out
@@ -18,4 +18,12 @@ module load cuda
 
 source ../yolov7env/bin/activate
 
-python main.py --source inference/videos/paving.mp4
+python detect.py --weights best_yolov7.pt --conf 0.70 --img-size 640 --source inference/videos/paving.mp4 --save-txt --name 'paving'
+
+python detect.py --weights best_yolov7.pt --conf 0.70 --img-size 640 --source inference/videos/hat_footage2.mp4 --save-txt --name 'hat_footage2'
+
+python detect.py --weights best_yolov7.pt --conf 0.70 --img-size 640 --source inference/videos/streetfootage1.mp4 --save-txt --name 'streetfootage1'
+
+python detect.py --weights best_yolov7.pt --conf 0.70 --img-size 640 --source inference/videos/streetfootage2.mp4 --save-txt --name 'streetfootage2'
+
+# python main.py --source inference/videos/paving.mp4
