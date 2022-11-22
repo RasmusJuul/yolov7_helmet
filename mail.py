@@ -6,24 +6,29 @@ import datetime
 import os
 import glob
 
-def email_sender():
+def email_sender(date = None):
     email_sender = 'decoyimg@gmail.com'
     email_password = 'sngqzljrmndknmwp'
     email_receiver = 'r.juul97@gmail.com'
 
     subject = 'DAILY SECURITY BRIEFING'
     
-    
-    date = datetime.datetime.today().strftime('%Y_%m_%d')
+    if date is None:
+        date = datetime.datetime.today().strftime('%Y_%m_%d')
     hourlist = os.listdir(f'runs/{date}')
     body = f'Incidents detected on {date}'
     for hour in hourlist:
+        prev_line = 0
+        counter = 0
         with open(f'runs/{date}/{hour}/timestamps.txt', 'r') as fp:
             lines = fp.readlines()
         for line in lines:
-            toi = str(datetime.timedelta(seconds=int(line)))
+            if int(line) < prev_line:
+                counter += 1
+            toi = str(datetime.timedelta(seconds=counter*300 + int(line)))
             toi = hour+toi[1:]
             body += f'\n A person without a safety helmet was detected at {toi}'
+            prev_line = int(line)
         
         
     em = EmailMessage()

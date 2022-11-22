@@ -44,6 +44,7 @@ def split_video(vidSource, outputPath):
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default='yolov7-beanie.pt', help='path to model weights')
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
     parser.add_argument('--project', default=None, help='save results to project folder. Defaults to current time and date')
     parser.add_argument('--stream', action='store_true', help='is source a stream?')
@@ -55,7 +56,7 @@ if __name__ == '__main__':
         project = opt.project
     
     
-    save_dir = Path(increment_path(Path(project), exist_ok=False))
+    save_dir = Path(increment_path(Path(project), exist_ok=True))
     (save_dir / 'videos').mkdir(parents=True, exist_ok=True)
     
     if not opt.stream:
@@ -68,7 +69,7 @@ if __name__ == '__main__':
 
     # Load model
     imgsz = 640
-    model = attempt_load('best_yolov7.pt', map_location=device)  # load FP32 model
+    model = attempt_load(opt.model, map_location=device)  # load FP32 model
     model = TracedModel(model, device, imgsz)
     if device != 'cpu':
         model.half()  # to FP16
