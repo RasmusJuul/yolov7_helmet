@@ -44,7 +44,7 @@ def split_video(vidSource, outputPath):
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='yolov7-beanie.pt', help='path to model weights')
+    parser.add_argument('--model', type=str, default='yolov7-helmet.pt', help='path to model weights')
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
     parser.add_argument('--project', default=None, help='save results to project folder. Defaults to current time and date')
     parser.add_argument('--stream', action='store_true', help='is source a stream?')
