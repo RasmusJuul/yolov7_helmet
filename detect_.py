@@ -32,7 +32,11 @@ def detect(model,
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
     # # Directories
-    save_dir = Path(increment_path(Path(project) / name, exist_ok=True))  # increment run
+    if name == '':
+        save_dir = Path(project)
+    else:
+        save_dir = Path(increment_path(Path(project) / name, exist_ok=True))  # increment run
+    
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Initialize
@@ -45,7 +49,6 @@ def detect(model,
         device = select_device('cpu')
         half = False
     
-    when = []
     no_helmet_pos = []
     
 
@@ -142,18 +145,18 @@ def detect(model,
                                     elif speed is not None:
                                         new_speed = ((speed[0]+temp_speed[0])/2,(speed[1]+temp_speed[1])/2)
                                         
-                                        cv2.line(im0, (int(xywh[0]),int(xywh[1])), (int(xywh[0]+new_speed[0]),int(xywh[1]+new_speed[1])), (0,0,255), 3)
+                                        # cv2.line(im0, (int(xywh[0]),int(xywh[1])), (int(xywh[0]+new_speed[0]),int(xywh[1]+new_speed[1])), (0,0,255), 3)
                                     else:
                                         new_speed = temp_speed
                                     add = False
                                 elif speed is not None:
                                     x_pred = speed[0]*time_between
                                     y_pred = speed[1]*time_between
-                                    try:
-                                        cv2.line(im0, (int(old_xywh[0]),int(old_xywh[1])), (int(old_xywh[0]+x_pred),int(old_xywh[1]+y_pred)), (0,0,255), 3)
-                                    except:
-                                        print('x_pred:',x_pred)
-                                        print('y_pred:',y_pred)
+                                    # try:
+                                    #     cv2.line(im0, (int(old_xywh[0]),int(old_xywh[1])), (int(old_xywh[0]+x_pred),int(old_xywh[1]+y_pred)), (0,0,255), 3)
+                                    # except:
+                                    #     print('x_pred:',x_pred)
+                                    #     print('y_pred:',y_pred)
                                     
                                     if (abs(old_xywh[0]+x_pred-xywh[0]) < xywh[2]) and (abs(old_xywh[1]+x_pred-xywh[1]) < xywh[3]):
                                         idx_to_update = k
@@ -215,7 +218,8 @@ def detect(model,
                 old_frame = info[1]
                 counter = info[2]
                 if (counter == 2*dataset.fps) and (old_frame == frame): # If seen for 2 seconds save an image and timestamp
-                    when.append(round(frame/dataset.fps))
+                    with open(str(save_dir)+'/timestamps.txt', 'a') as fp:
+                        fp.write("%s\n" % round(frame/dataset.fps))
                     cv2.imwrite(save_path+'_{}.jpg'.format(frame), im0)
                     print("\n no helmet detected and saved\n")
         
@@ -223,11 +227,5 @@ def detect(model,
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         #print(f"Results saved to {save_dir}{s}")
-    
-    if len(when) != 0:
-        # write timestamps to file
-        with open(str(save_dir)+'/timestamps.txt', 'w') as fp:
-            for item in when:
-                fp.write("%s\n" % item)
                 
     print(f'Done. ({time.time() - t0:.3f}s)')

@@ -1,10 +1,10 @@
 #!/bin/sh
 #BSUB -q gpua100
-#BSUB -J yolov7_test
+#BSUB -J yolov7_detect
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
-#BSUB -W 01:00
+#BSUB -W 03:00
 #BSUB -R "rusage[mem=8GB]"
 ##BSUB -R "select[gpu40gb]" #options gpu40gb or gpu80gb
 #BSUB -o outputs/gpu_%J.out
@@ -18,6 +18,6 @@ module load cuda
 
 source ../yolov7env/bin/activate
 
-python test.py --data data/custom.yaml --img 640 --batch 32 --conf 0.5 --iou 0.65 --device 0 --weights yolov7-beanie.pt --name yolov7_640_val
+# python detect.py --weights best_yolov7-e6e.pt --conf 0.70 --img-size 640 --source inference/videos/test.mp4 --name 'e6e'
 
-# python test.py --data data/custom.yaml --img 640 --batch 32 --conf 0.5 --iou 0.65 --device 0 --weights yolov7-beanie.pt --name yolov7-e6e_640_val
+python detect.py --weights yolov7-beanie.pt --conf 0.70 --img-size 640 --source inference/videos/test.mp4 --name 'basic'
