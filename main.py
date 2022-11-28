@@ -48,6 +48,7 @@ if __name__ == '__main__':
     parser.add_argument('--source', type=str, default='inference/videos/20220928_142037.mp4', help='path to video')
     parser.add_argument('--project', default=None, help='save results to project folder. Defaults to current time and date')
     parser.add_argument('--stream', action='store_true', help='is source a stream?')
+    parser.add_argument('--mail', action='store_true', help='whether to send a mail of the results or not')
     opt = parser.parse_args()
     
     if opt.project is None:
@@ -78,6 +79,6 @@ if __name__ == '__main__':
     else:
         source = str(save_dir.absolute())+'/videos'
         detect(model, source = source, name = '', project = project)
-    
-    email_sender()
+    if opt.mail:
+        email_sender()
 
